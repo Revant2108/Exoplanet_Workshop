@@ -20,6 +20,7 @@ class TRAPPISTHabitable:
         data_file : str, optional
             Path to your data file (default: "trappist_jwst_data.csv")
         """
+
         # REAL TRAPPIST-1 parameters
         self.all_planets: Dict[str, Dict[str, Any]] = {
             'b': {'period': 1.51, 'type': 'hot', 'temp_c': 127},
@@ -152,7 +153,7 @@ class TRAPPISTHabitable:
         all_periods = [p['period'] for p in self.all_planets.values()]
         mystery_periods = [1.51, 2.42, 3.0, 4.05, 6.10, 9.21, 12.0]
         
-        print("\n📋 ALL PERIODS IN THE DATA:")
+        print("\n📋 ALL PERIODS IN THE DATA (The computer may be wrong so verify all of them, maybe using find_peiod):")
         print("-"*50)
         for i, period in enumerate(mystery_periods):
             source = "❌ Unknown" if period not in all_periods else ""
@@ -402,47 +403,101 @@ class TRAPPISTHabitable:
         print("• Best candidate for finding life beyond Earth")
     
     def solar_system_comparison(self) -> None:
-        """OPTIONAL: Compare TRAPPIST-1 to our Solar System."""
+        """Polar orbit comparison with space background + REAL Solar System distances + separate scales."""
         print("\n" + "="*70)
         print("🌞 COMPARISON: TRAPPIST-1 vs OUR SOLAR SYSTEM")
         print("="*70)
-        
-        # Our Solar System (inner planets)
-        solar_system = {
-            'Mercury': {'period': 88, 'temp_c': 167, 'type': 'hot'},
-            'Venus': {'period': 225, 'temp_c': 464, 'type': 'hot'},
-            'Earth': {'period': 365, 'temp_c': 15, 'type': 'habitable'},
-            'Mars': {'period': 687, 'temp_c': -63, 'type': 'cold'}
+
+        # REAL Solar System orbital distances (in MILLIONS of km)
+        solar_system_orbit_km = {
+            'Mercury': 57.9,
+            'Venus': 108.2,
+            'Earth': 149.6,
+            'Mars': 227.9
         }
-        
-        fig, axes = plt.subplots(1, 2, figsize=(15, 5))
-        
-        # Plot TRAPPIST-1
+
+        # Temperature info stays the same
+        solar_system = {
+            'Mercury': {'temp_c': 167, 'type': 'hot'},
+            'Venus': {'temp_c': 464, 'type': 'hot'},
+            'Earth': {'temp_c': 15,  'type': 'habitable'},
+            'Mars': {'temp_c': -63, 'type': 'cold'}
+        }
+
+        fig, axes = plt.subplots(
+            1, 2, figsize=(14, 6),
+            subplot_kw={'projection': 'polar'}
+        )
+        fig.patch.set_facecolor("black")
+
+        # Starry background
+        for ax in axes:
+            ax.set_facecolor("black")
+            for _ in range(150):
+                ax.scatter(
+                    np.random.uniform(0, 2*np.pi),
+                    np.random.uniform(0, 300),
+                    s=np.random.uniform(5, 25),
+                    color="white",
+                    alpha=np.random.uniform(0.2, 0.8)
+                )
+
+        # ------------------------------------------------------------
+        # TRAPPIST-1 SYSTEM (scale max 25)
+        # ------------------------------------------------------------
         trappist_names = list(self.all_planets.keys())
-        trappist_periods = [self.all_planets[p]['period'] for p in trappist_names]
-        trappist_labels = [f"1{p}" for p in trappist_names]
-        
-        axes[0].bar(trappist_labels, trappist_periods, alpha=0.7)
-        axes[0].set_ylabel('Orbital Period (days)')
-        axes[0].set_title('TRAPPIST-1 System')
-        axes[0].tick_params(axis='x', rotation=45)
-        axes[0].grid(alpha=0.3, axis='y')
-        
-        # Plot Solar System
+        trappist_radii = np.array([self.all_planets[p]['period'] for p in trappist_names])
+        angles = np.linspace(0, 2*np.pi, len(trappist_names), endpoint=False)
+
+        ax = axes[0]
+        ax.set_title("TRAPPIST-1 System", fontsize=12, color="white")
+
+        # Star
+        ax.scatter([0], [0], color="red", s=600, edgecolor="white", linewidth=1.2)
+
+        # Planets
+        ax.scatter(angles, trappist_radii, s=200, alpha=0.9, color="cyan")
+        for ang, r, name in zip(angles, trappist_radii, trappist_names):
+            ax.text(ang, r + 0.6, f"1{name}", fontsize=9, color="white", ha='center')
+
+        # *** NEW: scale for TRAPPIST-1 ***
+        ax.set_ylim(0, 25)
+
+        ax.set_rticks([5, 10, 15, 20])
+        ax.set_rlabel_position(-22)
+        ax.tick_params(colors="white")
+        ax.grid(alpha=0.25, color="gray")
+
+        # ------------------------------------------------------------
+        # SOLAR SYSTEM (scale max 300 million km)
+        # ------------------------------------------------------------
         solar_names = list(solar_system.keys())
-        solar_periods = [solar_system[p]['period'] for p in solar_names]
-        
-        axes[1].bar(solar_names, solar_periods, alpha=0.7)
-        axes[1].set_ylabel('Orbital Period (days)')
-        axes[1].set_title('Our Solar System (Inner Planets)')
-        axes[1].tick_params(axis='x', rotation=45)
-        axes[1].grid(alpha=0.3, axis='y')
-        
-        plt.suptitle('Scale Comparison: All TRAPPIST-1 planets orbit closer than Mercury!', 
-                    fontsize=14, y=1.02)
+        solar_radii_km = np.array([solar_system_orbit_km[p] for p in solar_names])
+        angles2 = np.linspace(0, 2*np.pi, len(solar_names), endpoint=False)
+
+        ax2 = axes[1]
+        ax2.set_title("Inner Solar System (Real Distances)", fontsize=12, color="white")
+
+        # Sun
+        ax2.scatter([0], [0], color="yellow", s=900, edgecolor="orange", linewidth=1.5)
+
+        # Planets
+        ax2.scatter(angles2, solar_radii_km, s=200, alpha=0.9, color="skyblue")
+        for ang, r, name in zip(angles2, solar_radii_km, solar_names):
+            ax2.text(ang, r + 8, name, fontsize=9, color="white", ha='center')
+
+        # *** NEW: scale for Solar System ***
+        ax2.set_ylim(0, 300)
+
+        ax2.set_rticks([50, 100, 200])
+        ax2.set_rlabel_position(-22)
+        ax2.tick_params(colors="white")
+        ax2.grid(alpha=0.25, color="gray")
+
+        plt.suptitle("Real Distance Orbit Comparison • Space Theme", fontsize=14, color="white")
         plt.tight_layout()
         plt.show()
-        
+
         print("\n📏 SCALE COMPARISON:")
         print(f"• TRAPPIST-1b orbit: 1.51 days")
         print(f"• Mercury orbit: 88 days")
@@ -456,7 +511,8 @@ class TRAPPISTHabitable:
         print("\n💡 KEY INSIGHT:")
         print("Red dwarf stars (like TRAPPIST-1) are smaller and cooler,")
         print("so planets can orbit very close and still be habitable!")
-    
+
+
     # ============================================================
     # INTERNAL HELPER METHODS
     # ============================================================
